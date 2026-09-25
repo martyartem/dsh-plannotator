@@ -9,6 +9,7 @@
 [![version](https://img.shields.io/badge/version-0.1.0-4176E6)](https://github.com/martyartem/dsh-plannotator/releases)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![tests](https://img.shields.io/badge/tests-47%20passing-3c9)](#development)
+[![CI](https://github.com/martyartem/dsh-plannotator/actions/workflows/ci.yml/badge.svg)](https://github.com/martyartem/dsh-plannotator/actions/workflows/ci.yml)
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-dsh--plugin-4176E6)](https://github.com/deepseek-ai/deepseek-harness)
 
 </div>
@@ -17,14 +18,13 @@
 
 ## Why this plugin exists
 
-Three things get in the way when a review is started from inside a DSH session, and each one hurts
+Two things get in the way when a review is started from inside a DSH session, and each one hurts
 differently.
 
 | What gets in the way | How it looks to you | What this plugin does |
 |---|---|---|
 | **The review blocks the call** | The review server waits for a human for minutes, while a DSH bash call gives up far sooner: the process is pushed to the background, and killing it **loses the notes you already wrote, with no record**. | Starts the review in the background, answers with the link immediately, and delivers the decision into the conversation when the human submits it. |
 | **`plannotator` is not found** | A DSH session starts with `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, so an install in `~/.local/bin/plannotator` is not on it — the agent sees `plannotator: command not found` and the review never starts. | Resolves the CLI itself: plugin config → `PLANNOTATOR_BIN` → `PATH` → well-known install locations. |
-| **Review records are filed under another host** | In the Plannotator archive, reviews from DSH were labelled `claude-code`, so nothing said where they came from. | Stamps `PLANNOTATOR_ORIGIN=dsh` on every session it starts. |
 
 ## Features
 

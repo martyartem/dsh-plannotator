@@ -9,6 +9,7 @@
 [![version](https://img.shields.io/badge/version-0.1.0-4176E6)](https://github.com/martyartem/dsh-plannotator/releases)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![tests](https://img.shields.io/badge/tests-47%20passing-3c9)](#разработка)
+[![CI](https://github.com/martyartem/dsh-plannotator/actions/workflows/ci.yml/badge.svg)](https://github.com/martyartem/dsh-plannotator/actions/workflows/ci.yml)
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-dsh--plugin-4176E6)](https://github.com/deepseek-ai/deepseek-harness)
 
 </div>
@@ -17,13 +18,12 @@
 
 ## Зачем этот плагин
 
-Попросить агента провести ревью в DSH мешают три вещи, и каждая бьёт по-своему.
+Попросить агента провести ревью в DSH мешают две вещи, и каждая бьёт по-своему.
 
 | Что мешает | Как это выглядит для вас | Что делает плагин |
 |---|---|---|
 | **Ревью блокирует вызов** | Сервер ревью ждёт человека минутами, а bash-вызов в DSH отваливается по таймауту куда раньше: процесс уходит в фон, и если его убить, **замечания, которые вы уже расставили, пропадут без следа**. | Запускает ревью в фоне, сразу отдаёт ссылку, а решение доставляет в диалог, когда человек его отправит. |
 | **`plannotator` не находится** | Сессия DSH стартует с `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, поэтому установка в `~/.local/bin/plannotator` в него не попадает — агент видит `plannotator: command not found` и ревью просто не запускается. | Ищет CLI сам: конфиг плагина → `PLANNOTATOR_BIN` → `PATH` → известные каталоги установки. |
-| **Записи ревью уходят чужому хосту** | В архиве Plannotator ревью из DSH помечались как `claude-code` — по ним не понять, откуда они пришли. | Проставляет `PLANNOTATOR_ORIGIN=dsh` в каждую запущенную сессию. |
 
 ## Возможности
 
