@@ -1,0 +1,55 @@
+{
+  "name": "plannotator-dsh",
+  "version": "0.1.0",
+  "description": "Review a file, a folder or a web page in the Plannotator browser UI from DeepSeek Harness, and get the annotations back as a message.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json",
+    "./client": "./lib/client.js"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node scripts/selftest.mjs && node scripts/client-test.mjs",
+    "test:live": "node scripts/live-test.mjs"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "dsh",
+    "plannotator",
+    "review",
+    "annotations",
+    "documentation"
+  ],
+  "license": "MIT",
+  "author": "martyartem",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martyartem/dsh-plannotator.git"
+  },
+  "homepage": "https://github.com/martyartem/dsh-plannotator#readme",
+  "bugs": {
+    "url": "https://github.com/martyartem/dsh-plannotator/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "compatibility": {
+      "dsh": ">=0.1.0-rc.5"
+    },
+    "client": {
+      "platform": "web"
+    }
+  }
+}

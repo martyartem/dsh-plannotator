@@ -1,0 +1,11 @@
+# Dependencies (never installed: the plugin has none)
+node_modules/
+
+# Plugin runtime output
+*.log
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp

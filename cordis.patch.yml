@@ -1,0 +1,7 @@
+# plannotator-dsh bundle patch: one host row over the profile.
+# The row name resolves from the profile's own node_modules, where the profile's
+# package.json holds this checkout as a `link:` dependency, so edits here reach
+# the profile without a reinstall.
+- insert:
+    - id: plannotator-dsh
+      name: plannotator-dsh
