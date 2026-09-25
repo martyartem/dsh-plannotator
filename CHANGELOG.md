@@ -13,8 +13,8 @@ First release.
 - **Review** action in the document-preview header; a file Plannotator would refuse is reviewed as
   its containing folder.
 - `/plannotator <file|folder|url>` — one command, no flags — plus `/plannotate`.
-- Detached review sessions: the command answers with the URL immediately and the decision is
-  delivered later through `agent.steer()`.
+- Review sessions run in the background: the command answers with the URL immediately and the
+  decision is delivered later through `agent.steer()`.
 - `GET /plannotator/review` and `POST /plannotator/log`, the only two routes the browser half needs.
 - Binary discovery that does not depend on the session's minimal `PATH`.
 - Workspace resolution from the agent session, the environment, the workspace registry, the

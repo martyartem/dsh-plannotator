@@ -11,24 +11,20 @@
 [![tests](https://img.shields.io/badge/tests-47%20passing-3c9)](#development)
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-dsh--plugin-4176E6)](https://github.com/deepseek-ai/deepseek-harness)
 
-One **Review** button in the document preview · one `/plannotator` command · detached sessions, so
-the turn never blocks · annotations steered back as a complete DSH `UserMessage`
-
 </div>
 
 ---
 
 ## Why this plugin exists
 
-Two things go wrong when a review is started from inside a DSH session.
+Three things get in the way when a review is started from inside a DSH session, and each one hurts
+differently.
 
-| Problem | What it looks like | What this plugin does |
+| What gets in the way | How it looks to you | What this plugin does |
 |---|---|---|
-| **The call blocks** | Plannotator's review server waits for a human — minutes. A DSH bash call times out long before that, the process is pushed to the background, and killing it **loses the annotations with no record**. | Starts the session detached, answers with the URL immediately, and delivers the decision later through `agent.steer()`. |
-| **The binary is invisible** | A DSH session runs with `/usr/bin:/bin:/usr/sbin:/sbin`, so a regular `~/.local/bin/plannotator` install is not on `PATH`. | Resolves the binary itself: config → `PLANNOTATOR_BIN` → `PATH` → well-known install locations. |
-
-It also stamps `PLANNOTATOR_ORIGIN=dsh`, so reviews started here are attributed to this host rather
-than to another agent's label.
+| **The review blocks the call** | The review server waits for a human for minutes, while a DSH bash call gives up far sooner: the process is pushed to the background, and killing it **loses the notes you already wrote, with no record**. | Starts the review in the background, answers with the link immediately, and delivers the decision into the conversation when the human submits it. |
+| **`plannotator` is not found** | A DSH session starts with `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, so an install in `~/.local/bin/plannotator` is not on it — the agent sees `plannotator: command not found` and the review never starts. | Resolves the CLI itself: plugin config → `PLANNOTATOR_BIN` → `PATH` → well-known install locations. |
+| **Review records are filed under another host** | In the Plannotator archive, reviews from DSH were labelled `claude-code`, so nothing said where they came from. | Stamps `PLANNOTATOR_ORIGIN=dsh` on every session it starts. |
 
 ## Features
 
@@ -41,7 +37,6 @@ than to another agent's label.
 | Delivered annotations | Conversation | The decision record (`--json`) is steered back as a message, so the agent addresses the annotations in the same chat. |
 
 That is the whole surface: **one** sidebar seat, **one** command, **two** HTTP routes, and no flags.
-`gate`, `port`, `openBrowser` and the timeout are config values.
 
 ## Requirements
 
@@ -49,7 +44,7 @@ That is the whole surface: **one** sidebar seat, **one** command, **two** HTTP r
 - **Node** `>=20` for the host half. There are no runtime dependencies.
 - The **Plannotator CLI** installed somewhere the plugin can find: plugin config, `PLANNOTATOR_BIN`,
   `PATH`, or one of `~/.local/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, `~/.bun/bin`,
-  `~/.cargo/bin`. Without it the plugin still loads and reports how to point it at the binary.
+  `~/.cargo/bin`. Without it the plugin still loads and reports how to point it at the CLI.
 
 ## Install
 
@@ -98,7 +93,7 @@ upgrades:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `binary` | auto-detect | explicit path to the `plannotator` binary |
+| `binary` | auto-detect | explicit path to the `plannotator` CLI |
 | `binaryFallbacks` | well-known list | extra candidate paths |
 | `origin` | `dsh` | the `PLANNOTATOR_ORIGIN` every review is stamped with |
 | `gate` | `false` | add an Approve button to every review |
@@ -112,8 +107,8 @@ upgrades:
 
 ## How it works
 
-- **Host half** — `lib/index.js`: registers the command and the two routes, resolves the binary and
-  the workspace, starts a detached Plannotator process, waits for its readiness file, then reads the
+- **Host half** — `lib/index.js`: registers the command and the two routes, resolves the CLI and
+  the workspace, starts the Plannotator process in the background, waits for its readiness file, then reads the
   decision record from its stdout and steers it into the session.
 - **Browser half** — `lib/client.js`: hand-written in the host's module-loader format
   (`window.__ModuleLoader__.load`), so it needs **no bundler** and only `react` from the platform
@@ -123,17 +118,17 @@ upgrades:
 
   | Route | Purpose |
   |---|---|
-  | `GET /plannotator/review?target=<path\|url>[&session=<id>]` | starts a detached review, answers `{ ok, url, label, gate }` |
+  | `GET /plannotator/review?target=<path\|url>[&session=<id>]` | starts a review in the background, answers `{ ok, url, label, gate }` |
   | `POST /plannotator/log` | forwards a client-side note into the plugin log |
 
 - **Workspace resolution**, in order: the live agent's session directory → `DSH_WORKSPACE_DIR` /
   `DSH_CWD` → `ctx.workspaceRegistry` → the `cwd` in the session-log header → the newest session →
   the host process cwd.
-- **Delivery contract** — the steered message is a complete DSH `UserMessage`: `id`, `role`,
-  `content`, and a producer-owned `source.kind` of `plugin:plannotator-dsh`. The append path accepts a
-  message without `id`, but the restore path then rejects the **whole session**
-  (`session event at seq N lacks an identified message`) and the history stops loading. The plugin
-  mints the id itself, and the offline suite asserts the message carries one.
+- **Delivery contract** — the message the agent receives is a DSH `UserMessage` with every field the
+  type requires: `id`, `role`, `content`, and a producer-owned `source.kind` of
+  `plugin:plannotator-dsh`. The append path accepts a message without `id`, but the restore path then
+  rejects the **whole session** (`session event at seq N lacks an identified message`) and the history
+  stops loading. The plugin mints the id itself, and the offline suite asserts the message carries one.
 
 ## Compatibility
 
@@ -142,9 +137,6 @@ upgrades:
 | DeepSeek Harness | `>=0.1.0-rc.5` |
 | Node | `>=20`, built-ins only |
 | Plannotator CLI | the documented contract: argv `annotate <target> --json`, the readiness file (`PLANNOTATOR_READY_FILE`), the stdout decision record, `PLANNOTATOR_ORIGIN`, `PLANNOTATOR_PORT` |
-
-Nothing here imports a Harness package, so a host upgrade can break a *contract* but not the module
-graph — and a broken contract shows up as a log line, not as a broken session.
 
 ## Troubleshooting
 
@@ -174,18 +166,18 @@ Nothing but Node is needed: no install step, no bundler, no booted profile.
 
 ```sh
 npm test                      # both offline halves
-node scripts/selftest.mjs     # host half: 35 checks — parsing, binary/workspace resolution, sessions, routes
+node scripts/selftest.mjs     # host half: 35 checks — parsing, CLI/workspace resolution, sessions, routes
 node scripts/client-test.mjs  # browser half: 12 checks — bundle shape, the single seat, the cold-boot race
-node scripts/live-test.mjs    # against the real Plannotator binary and its HTTP API
+node scripts/live-test.mjs    # against the real Plannotator CLI and its HTTP API
 ```
 
 ```
 lib/
   index.js      host row: command, HTTP routes, agent targeting
   command.js    input → Plannotator argv
-  review.js     detached session, readiness, decision, steering, timeout
+  review.js     a review in the background: readiness, decision, steering, timeout
   config.js     config defaults, log file, helpers
-  binary.js     PATH-independent binary discovery
+  binary.js     PATH-independent CLI discovery
   workspace.js  which directory a relative target resolves against
   client.js     browser half: the document-preview Review seat
 scripts/        offline suites, live smoke test, uninstall helper
