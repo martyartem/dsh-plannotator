@@ -34,6 +34,30 @@ function check(name, fn) {
   }
 }
 
+/**
+ * Wait until `predicate` holds.
+ *
+ * The waits in this suite used to be fixed sleeps sized for a fake binary that
+ * decides after ~400 ms. On a loaded machine that budget is a hope, not a
+ * guarantee, and a delivery arriving a moment late failed a check that would have
+ * passed. Polling keeps the assertion (the message must arrive) without betting on
+ * the clock.
+ *
+ * @param {() => boolean} predicate Condition to wait for.
+ * @param {number} timeoutMs How long to keep polling before giving up.
+ * @returns {Promise<boolean>} The predicate's final value.
+ */
+async function waitFor(predicate, timeoutMs = 6_000) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (predicate()) return true;
+    if (Date.now() >= deadline) return predicate();
+    await new Promise((resolve) => {
+      setTimeout(resolve, 25);
+    });
+  }
+}
+
 function fakeCtx({ webServer = null, agents = null } = {}) {
   const registry = new Map();
   const routes = new Map();
@@ -302,9 +326,7 @@ await (async () => {
     assert.equal(named.body.ok, true);
   });
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 1_200);
-  });
+  await waitFor(() => steered.mine.length > 0);
 
   check('a claimed session receives the annotations even while another session runs', () => {
     assert.equal(steered.mine.length, 1, `expected the claimed session to be steered, got ${steered.mine.length}`);
@@ -320,8 +342,11 @@ await (async () => {
     assert.equal(unknown.body.ok, true);
   });
 
+  // An asserted *absence* cannot be polled for, so this stays a deliberate quiet
+  // window: comfortably more than the fake binary's ~400 ms decision, so a wrong
+  // delivery would have to land inside the window to be missed.
   await new Promise((resolve) => {
-    setTimeout(resolve, 1_200);
+    setTimeout(resolve, 1_500);
   });
 
   check('an unknown session claim never delivers to another session', () => {
@@ -374,9 +399,7 @@ await (async () => {
     return result.text.split('\n')[0];
   });
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 1_200);
-  });
+  await waitFor(() => steered.length > 0);
 
   check('the decision comes back as a steered agent message', () => {
     assert.equal(steered.length, 1, `expected one steered message, got ${steered.length}`);
@@ -421,9 +444,7 @@ await (async () => {
 
   const result = await timeoutCtx.registry.get('plannotator').handler(fakeInvocation('abandoned.md', timeoutAgent));
   assert.equal(result.kind, 'success', `unexpected result: ${JSON.stringify(result)}`);
-  await new Promise((resolve) => {
-    setTimeout(resolve, 1_200);
-  });
+  await waitFor(() => steered.length > 0);
 
   check('a review that outlives its timeout is stopped and reported', () => {
     assert.equal(steered.length, 1, `expected one steered message, got ${steered.length}`);
