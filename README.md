@@ -1,5 +1,7 @@
 # dsh-plannotator
 
+**English** | [Русский](README.ru.md)
+
 <div align="center">
 
 **Review a file, a folder or a web page in the Plannotator browser UI — the annotations come back to the agent as a normal message in the conversation.**
